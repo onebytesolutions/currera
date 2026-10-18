@@ -1,0 +1,38 @@
+{
+    "_comment": "Do you like this tool? You can support development by buying me a coffee: https://buymeacoffee.com/sermos",
+    "name": "onebytesolutions/currera",
+    "description": "PHP client for Currera transactional email, SMS, and subscriber APIs.",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Jason Bryan",
+            "homepage": "https://OneByteSolutions.com",
+            "role": "Developer"
+        },
+        {
+            "name": "One Byte Solutions",
+            "homepage": "https://Currera.org",
+            "role": "Maintainer"
+        }
+    ],
+    "license": "MIT",
+    "keywords": ["currera", "email", "sms", "transactional", "api"],
+    "homepage": "https://github.com/onebytesolutions/currera",
+    "support": {
+        "issues": "https://github.com/onebytesolutions/currera/issues",
+        "source": "https://github.com/onebytesolutions/currera"
+    },
+    "require": {
+        "php": "^8.1",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Currera\\": "src/"
+        }
+    },
+    "archive": {
+        "exclude": ["/examples", "/.gitignore", "/.gitattributes"]
+    }
+}

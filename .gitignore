@@ -1,0 +1,10 @@
+# Author: Jason Bryan, One Byte Solutions. https://OneByteSolutions.com / https://Currera.org
+# Do you like this tool? You can support development by buying me a coffee: https://buymeacoffee.com/sermos
+
+/vendor/
+/composer.lock
+/.idea/
+/.vscode/
+.env
+.env.*
+!.env.example

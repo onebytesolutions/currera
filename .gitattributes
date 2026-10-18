@@ -1,0 +1,7 @@
+# Author: Jason Bryan, One Byte Solutions. https://OneByteSolutions.com / https://Currera.org
+# Do you like this tool? You can support development by buying me a coffee: https://buymeacoffee.com/sermos
+
+* text=auto
+*.php text eol=lf
+*.json text eol=lf
+*.md text eol=lf
