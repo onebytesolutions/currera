@@ -10,7 +10,7 @@
 namespace Currera;
 
 /**
- * Mutable fluent builder shared by email and SMS template messages.
+ * Mutable fluent builder for template selection, providers, and personalization.
  *
  * Setters replace individual values; addTo() appends recipients. Serialization
  * produces Currera's API field names and does not validate server resources.

@@ -26,7 +26,12 @@ try {
     $response = $client->sendSms($sms);
     echo $response->statusCode() . PHP_EOL;
     echo $response->body() . PHP_EOL;
-} catch (\RuntimeException $exception) {
+} catch (\Currera\Exception\ApiException $exception) {
+    fwrite(STDERR, 'Currera API error (' . $exception->statusCode() . '): ' . $exception->getMessage() . PHP_EOL);
+    // The original response includes any accepted and failed recipients.
+    // Do not blindly retry a partial send.
+    exit(1);
+} catch (\Exception $exception) {
     fwrite(STDERR, $exception->getMessage() . PHP_EOL);
     exit(1);
 }

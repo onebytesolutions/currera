@@ -12,7 +12,8 @@ namespace Currera;
 /**
  * HTTP response preserving the status, unparsed body, and raw header lines.
  *
- * Represents both successful and failed HTTP requests. Construction does not
+ * Successful calls return this object; API exceptions retain failed responses.
+ * Construction does not
  * decode JSON or throw on an error status. A successful send status indicates
  * provider acceptance, not confirmed delivery.
  */

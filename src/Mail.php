@@ -10,12 +10,42 @@
 namespace Currera;
 
 /**
- * Build a stored-template transactional email request for Client::send().
+ * Build a template-based or raw-content email request for Client::send().
  *
  * Sender verification, template availability, and recipient validation happen
- * on the server. Omitted sender and subject values use server defaults.
+ * on the server. Omitted senders use server defaults. Raw content requires a
+ * subject; template sends may use the template name as the subject.
  */
 class Mail extends TemplateMessage {
+
+    /**
+     * Set caller-provided HTML instead of using a stored template.
+     *
+     * Requires a subject and must not be combined with setTemplateId().
+     * Shared and recipient placeholders are supported; placeholder values are
+     * HTML-escaped by Currera. The supplied markup itself is the email content.
+     *
+     * @param string $html HTML body, optionally containing placeholder tags.
+     * @return static This builder.
+     */
+    public function setHtml(string $html): static {
+        $this->payload['html'] = $html;
+        return $this;
+    }
+
+    /**
+     * Set plain-text content, alone or as an alternative to caller-provided HTML.
+     *
+     * Requires a subject and must not be combined with setTemplateId().
+     * No plain-text alternative is automatically generated from HTML.
+     *
+     * @param string $text Plain-text body, optionally containing placeholder tags.
+     * @return static This builder.
+     */
+    public function setText(string $text): static {
+        $this->payload['text'] = $text;
+        return $this;
+    }
 
     /**
      * Override the sender using a verified address on the selected provider.

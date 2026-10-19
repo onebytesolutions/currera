@@ -42,8 +42,18 @@ the /api suffix. The client appends the endpoint path. API keys use bearer
 authentication. Use HTTPS for deployed installations and keep keys outside
 source control.
 
-The API key's service account needs campaigns.send for email and SMS, and
-lists.edit for subscriptions.
+Assign the service account a role with only the API permissions it needs:
+
+| Operation | Permission |
+| --- | --- |
+| Send transactional email | transactional_email.send |
+| Send transactional SMS | transactional_sms.send |
+| Add a subscriber/list membership | subscribers.create |
+| Update subscriber profile fields | subscribers.edit |
+
+These permissions require Currera migration 017_api_operation_permissions.php.
+Existing role access is preserved during migration; review service-account
+roles to remove broader permissions when they are no longer needed.
 
 ## Send email
 
@@ -67,6 +77,33 @@ on that provider.
 Call addTo repeatedly for multiple recipients (at most 100 per request).
 Recipient placeholders override shared dynamic template data. Email placeholders
 are escaped by Currera for HTML content.
+
+## Send raw HTML or plain text
+
+Use the same client method without selecting a template:
+
+    $mail = (new \Currera\Mail())
+        ->setFrom('receipts@example.com', 'Receipts')
+        ->setSubject('Order {{ORDER_NUMBER}}')
+        ->setHtml('<p>Hello {{NAME}}, your order is {{ORDER_NUMBER}}.</p>')
+        ->setText('Hello {{NAME}}, your order is {{ORDER_NUMBER}}.')
+        ->addTo('customer@example.com', 'Alex')
+        ->addDynamicTemplateData('ORDER_NUMBER', 'A-1007');
+
+    $response = $currera->send($mail);
+
+Requires the updated Currera API and transactional_email.send permission.
+Provide a subject and at least one non-empty body using setHtml() or setText().
+Both can be supplied for multipart email; neither is generated automatically.
+Do not combine raw bodies with setTemplateId(); the API rejects mixed requests
+with 422 rather than silently selecting one source.
+
+Raw bodies support shared and recipient placeholders. HTML placeholder values
+are escaped; the HTML markup you supply becomes the email body. Verified sender
+requirements, suppressions, optional tracking, and recipient results are the
+same as for template sends. A raw send returns data.template_id as null.
+
+Raw arrays also work: send a subject and html and/or text instead of template_id.
 
 ## Send SMS
 
@@ -115,26 +152,46 @@ There is no unsubscribe endpoint in this client or the current REST API.
 
 ## Responses and errors
 
-    echo $response->statusCode();
-    echo $response->body();
-    $headers = $response->headers(); // Raw header lines.
-    $result = $response->json();     // Decoded associative array.
+Successful requests return a Response with statusCode(), body(), headers(),
+and json(). API failures throw Currera\Exception\ApiException:
 
-HTTP errors are returned as Response objects, including 400, 401, 403, 422,
-and 5xx responses. Inspect statusCode() and the error.code / error.message
-fields in a JSON error response.
+    try {
+        $response = $currera->send($mail);
+        $result = $response->json();
+    } catch (\Currera\Exception\ApiException $exception) {
+        echo $exception->getMessage();
+        echo $exception->statusCode(); // Also available through getCode().
+        echo $exception->errorCode();  // For example: invalid_request.
+        $response = $exception->response();
+        // Inspect response()->json()['data']['messages'] for send outcomes.
+    } catch (\Exception $exception) {
+        // Includes transport, configuration, and request JSON encoding errors.
+        echo $exception->getMessage();
+    }
 
-A send response of 202 means at least one recipient was accepted by a provider;
-it does not confirm final delivery or success for every recipient. Inspect each
-entry in data.messages and its accepted flag. If no recipient is accepted, the
-send endpoint returns 502.
+All non-2xx HTTP responses throw, including redirects, authentication failures,
+validation failures, and server errors. Explicit API errors and failed recipients
+also throw, even when the HTTP status is 202. Malformed or non-JSON responses
+throw ApiException; their original body is available through response()->body().
+A decoding failure is retained as getPrevious().
+
+A partial send can accept some recipients and reject others. Its exception
+retains data.messages in the response. Do not resend to accepted recipients.
+Provider acceptance does not confirm final delivery. API responses use
+partial_send_failure for mixed outcomes and send_failed when none were accepted.
+Other unsuccessful HTTP responses without a structured error use http_error;
+invalid successful responses use invalid_response.
 
 Subscriptions return 201 when created or 200 for an existing subscription.
+Transport failures throw RuntimeException. Invalid configuration throws
+InvalidArgumentException. Request JSON encoding failures throw JsonException.
+ApiException extends RuntimeException, so existing RuntimeException handlers
+also catch API failures. Catch Exception to handle all these exception types.
 
-Transport failures throw RuntimeException. Invalid client configuration throws
-InvalidArgumentException. JSON encoding and decoding failures throw
-JsonException; json() throws UnexpectedValueException for scalar JSON.
-A proxy may return a non-JSON body, so retain body() when handling decode errors.
+This changes earlier client behavior that returned HTTP error Response objects.
+Update integrations to catch exceptions instead of relying on status checks
+after a failed call. The API now emits top-level data/error fields without page
+layout wrappers, including invalid-key responses.
 
 The client verifies TLS certificates, does not follow redirects, and never
 retries automatically. A timeout may occur after a provider accepted a message;
@@ -158,7 +215,7 @@ authoritative; the client does not resolve templates, providers, or permissions.
 ## Package layout
 
 - src/Client.php: connection configuration and endpoint requests.
-- src/Mail.php: email message builder.
+- src/Mail.php: template and raw HTML/plain-text email builder.
 - src/Sms.php: SMS message builder.
 - src/TemplateMessage.php: shared template, provider, and recipient behavior.
 - src/Response.php: HTTP status, raw headers, body, and JSON access.
@@ -184,7 +241,7 @@ MIT. Copyright (c) 2026 Jason Bryan, One Byte Solutions, LLC. See LICENSE.
 ## Update subscriber profile values
 
 Requires a Currera installation with POST /api/subscriber-fields support and an
-API key with lists.edit permission.
+API key with subscribers.edit permission.
 
     $response = $currera->updateSubscriberFields('customer@example.com', [
         'company' => 'Acme',
@@ -201,8 +258,8 @@ cleared. Consent and membership states remain unchanged.
 
 Values must be scalar or null. Dates require YYYY-MM-DD; dropdown/radio fields
 require configured options; checkboxes accept booleans or 0/1.
-Unknown slugs and invalid values return 422 without applying any changes.
-A missing subscriber returns 404. Success returns 200 with data.subscriber_id,
+Unknown slugs and invalid values throw ApiException with status 422 without applying any changes.
+A missing subscriber throws ApiException with status 404. Success returns 200 with data.subscriber_id,
 data.email, and data.updated_fields.
 
 Profile values persist separately from message placeholders. For transactional
