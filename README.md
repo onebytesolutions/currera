@@ -162,6 +162,78 @@ The response includes `data.unsubscribed_count`, which is zero when no
 memberships need changing. Unsubscribing from all applies to current email list
 memberships and preserves the contact and SMS consent.
 
+### Contact and list management
+
+```php
+$client->getContact($email);
+$client->listLists();
+$client->upsertContacts([
+    ['email' => $email, 'first_name' => 'Sam'],
+], [$listId]);
+```
+
+Contact lookup returns the current memberships and their statuses. List
+discovery returns the public List ID used by subscription operations. Pass
+`data.next_after_id` as the first argument to request the next page.
+
+Upsert accepts up to 100 contacts and 10 optional list IDs per call. Names and
+existing custom-field slugs may be provided. List assignment observes double
+opt-in, existing opt-outs, and suppressions. Inspect each entry in
+`data.contacts` for its membership results or an error for that contact.
+Read operations require `lists.view`. Upsert requires both
+`subscribers.create` and `subscribers.edit`.
+
+### Email suppressions
+
+```php
+$client->listSuppressions();
+$client->getSuppression($email);
+$client->addSuppression($email);
+$client->removeSuppression($suppressionId);
+
+$group = $client->saveSuppressionGroup('Product updates')->json()['data'];
+$client->setGroupPreference($group['id'], $email, true);
+$client->getGroupPreferences($email);
+```
+
+Address-level suppression blocks future email and unsubscribes existing
+memberships. Removal takes a suppression record ID and leaves list opt-outs in
+place. Other suppression records for the same email can still block sending.
+Groups are independent of mailing lists and apply when `sendMail()` supplies
+`asm.group_id`. Administrators can manage groups and opt-outs under
+**Email Suppressions → Suppression groups**. Recipients can update their own
+group opt-outs on the signed **Manage subscriptions** page.
+Read and write operations require `suppressions.view` and `suppressions.edit`,
+respectively.
+
+### Transactional email with personalizations
+
+```php
+$client->sendMail([
+    'from' => ['email' => $verifiedSender],
+    'subject' => 'Your receipt',
+    'personalizations' => [
+        ['to' => [['email' => $email]]],
+    ],
+    'content' => [['type' => 'text/plain', 'value' => 'Thanks for your order.']],
+]);
+```
+
+`sendMail()` uses Currera's `POST /api/mail-send` and response envelope. It
+accepts up to 100 total recipients. Each To address gets a separate message.
+Use one To address per personalization when adding CC or BCC. Support for
+CC, BCC, attachments, categories, and custom arguments depends on the active
+delivery provider. Any suppressed address in a personalization blocks that message.
+Use local Currera template IDs and Currera's scalar placeholder syntax.
+
+Set `mail_settings.sandbox_mode.enable` to validate without sending or queuing.
+Set top-level `send_at` to a Unix timestamp up to 72 hours ahead to queue a
+send. Pass `data.scheduled_id` to `getScheduledMail()` to read its status.
+Currera cron dispatches scheduled requests with current suppression rules and
+template content. An interrupted send can have an `unknown` outcome.
+Both operations require `transactional_email.send`. The server must have the
+scheduled mail and suppression group migrations installed.
+
 ## Responses and errors
 
 Successful requests return a Response with statusCode(), body(), headers(),

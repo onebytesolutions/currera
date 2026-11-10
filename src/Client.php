@@ -132,6 +132,63 @@ class Client {
         ]);
     }
 
+    /** Send, schedule, or validate a transactional email with personalizations. */
+    public function sendMail(array $payload): Response {
+        return $this->post('/api/mail-send', $payload);
+    }
+
+    public function getScheduledMail(int $id): Response {
+        return $this->post('/api/scheduled-mail', ['id' => $id]);
+    }
+
+    public function getContact(string $email): Response {
+        return $this->post('/api/contact', ['email' => $email]);
+    }
+
+    public function listLists(int $afterId = 0, int $limit = 50): Response {
+        return $this->post('/api/lists', ['after_id' => $afterId, 'limit' => $limit]);
+    }
+
+    public function upsertContacts(array $contacts, array $listIds = []): Response {
+        return $this->post('/api/upsert-contacts', ['contacts' => $contacts, 'list_ids' => $listIds]);
+    }
+
+    public function listSuppressions(int $afterId = 0, int $limit = 50): Response {
+        return $this->post('/api/suppressions', ['after_id' => $afterId, 'limit' => $limit]);
+    }
+
+    public function getSuppression(string $email, int $afterId = 0, int $limit = 50): Response {
+        return $this->post('/api/suppressions', ['email' => $email, 'after_id' => $afterId, 'limit' => $limit]);
+    }
+
+    public function addSuppression(string $email): Response {
+        return $this->post('/api/add-suppression', ['email' => $email]);
+    }
+
+    public function removeSuppression(int $id): Response {
+        return $this->post('/api/remove-suppression', ['id' => $id]);
+    }
+
+    public function listSuppressionGroups(int $afterId = 0): Response {
+        return $this->post('/api/suppression-groups', ['after_id' => $afterId]);
+    }
+
+    public function saveSuppressionGroup(string $name, string $description = '', ?int $id = null): Response {
+        return $this->post('/api/save-suppression-group', ['id' => $id, 'name' => $name, 'description' => $description]);
+    }
+
+    public function getGroupPreferences(string $email): Response {
+        return $this->post('/api/group-preferences', ['email' => $email]);
+    }
+
+    public function setGroupPreference(int $groupId, string $email, bool $suppressed): Response {
+        return $this->post('/api/set-group-preference', [
+            'group_id' => $groupId,
+            'email' => $email,
+            'suppressed' => $suppressed,
+        ]);
+    }
+
     /**
      * Add or replace existing subscriber profile values by exact field slug.
      *
