@@ -113,6 +113,26 @@ class Client {
     }
 
     /**
+     * Unsubscribe an email from one list using its displayed List ID.
+     */
+    public function unsubscribe(string $listId, string $email): Response {
+        return $this->post('/api/unsubscribe', [
+            'list_id' => $listId,
+            'email' => $email,
+        ]);
+    }
+
+    /**
+     * Unsubscribe an email from all of its current mailing lists.
+     */
+    public function unsubscribeAll(string $email): Response {
+        return $this->post('/api/unsubscribe', [
+            'email' => $email,
+            'all_lists' => true,
+        ]);
+    }
+
+    /**
      * Add or replace existing subscriber profile values by exact field slug.
      *
      * Calls POST /api/subscriber-fields and requires subscribers.edit. This creates

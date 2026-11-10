@@ -70,9 +70,8 @@ roles to remove broader permissions when they are no longer needed.
 
 Templates must be active email templates. IDs may be the template UUID, an
 existing imported template identifier, or a numeric Currera template ID.
-The subject defaults to the template name when omitted. The sender defaults to
-the selected provider's first verified sender. Explicit senders must be verified
-on that provider.
+The subject defaults to the saved template subject when omitted. The sender defaults to
+the selected provider's first verified sender. Explicit senders must be individually verified or belong to an exact verified domain on that provider. For example, verifying datescapes.com allows dev@datescapes.com without a separate mailbox profile. Subdomains require their own verification.
 
 Call addTo repeatedly for multiple recipients (at most 100 per request).
 Recipient placeholders override shared dynamic template data. Email placeholders
@@ -148,7 +147,20 @@ Use the displayed 16-character List ID, not a numeric database ID. Names apply
 to newly created contacts. Double opt-in is respected by default. Explicitly
 setting bypass_double_opt_in to the boolean true activates membership without
 a confirmation email, subject to server suppression and unsubscribe rules.
-There is no unsubscribe endpoint in this client or the current REST API.
+
+### Unsubscribe by email
+
+```php
+$client->unsubscribe($listId, $email);
+$client->unsubscribeAll($email);
+```
+
+Both methods call `POST /api/unsubscribe` with an email and either the displayed
+16-character List ID (`list_id`) or an explicit `all_lists: true`. The server
+must support this endpoint and the API key needs `subscribers.unsubscribe`.
+The response includes `data.unsubscribed_count`, which is zero when no
+memberships need changing. Unsubscribing from all applies to current email list
+memberships and preserves the contact and SMS consent.
 
 ## Responses and errors
 
@@ -265,3 +277,8 @@ data.email, and data.updated_fields.
 Profile values persist separately from message placeholders. For transactional
 messages, supply template values with addDynamicTemplateData() or addTo()
 placeholders; updating a profile does not copy values into a transactional send.
+
+Placeholder names in transactional email and SMS are matched without case
+sensitivity: a supplied year value replaces both {{year}} and {{YEAR}}.
+This also applies to subjects and per-recipient overrides. Unknown tags remain
+unchanged, and substituted HTML values continue to be escaped.

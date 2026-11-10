@@ -14,7 +14,7 @@ namespace Currera;
  *
  * Sender verification, template availability, and recipient validation happen
  * on the server. Omitted senders use server defaults. Raw content requires a
- * subject; template sends may use the template name as the subject.
+ * subject; template sends may use the saved template subject.
  */
 class Mail extends TemplateMessage {
 
@@ -48,12 +48,13 @@ class Mail extends TemplateMessage {
     }
 
     /**
-     * Override the sender using a verified address on the selected provider.
+     * Use a verified address or an address on a verified domain for this provider.
      *
      * Passing null for the name removes an earlier name override. An existing
-     * reply-to override is preserved.
+     * reply-to override is preserved. Domain verification covers the exact domain,
+     * not its subdomains. The address need not have a saved mailbox profile.
      *
-     * @param string $email Verified sender email address.
+     * @param string $email Individually verified address or mailbox on a verified domain.
      * @param string|null $name Optional sender display name.
      * @return static This builder.
      */
@@ -89,6 +90,18 @@ class Mail extends TemplateMessage {
         return $this;
     }
 
+    /**
+     * Override the template preview text for {{preview-text}} / {{PREVIEW_TEXT}}.
+     *
+     * The email body must contain the tag; no preheader markup is injected.
+     *
+     * @param string $text Preview text, optionally containing recipient placeholders.
+     * @return static This builder.
+     */
+    public function setPreviewText(string $text): static {
+        $this->payload['preview_text'] = $text;
+        return $this;
+    }
     /**
      * Append an email recipient with optional template value overrides.
      *
